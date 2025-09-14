@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <title>Calcolo Portata Scaricata - Ponte Ghirlo</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 700px;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 12px;
+      background-color: #f9f9f9;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+    }
+    h2 { text-align: center; color: #2c3e50; font-size: 1.8rem; }
+    .sezione {
+      background-color: #eef1f5; padding: 15px; border-radius: 10px; margin-top: 20px;
+    }
+    .sezione h3 { margin-top: 0; font-size: 1.1rem; font-weight: bold; text-transform: uppercase; }
+    .ventola { color: #007acc; }
+    .mezzofondo { color: #2e8b57; }
+    .fondo { color: #8b4513; }
+    label { display: block; margin-top: 10px; font-weight: bold; color: #2c3e50; font-size: 1rem; }
+    input {
+      width: 100%; padding: 12px; margin-top: 6px; border-radius: 8px; border: 1px solid #ccc; font-size: 1.05rem;
+    }
+    button {
+      margin-top: 20px; padding: 12px 18px; background-color: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem;
+    }
+    button:hover { background-color: #2980b9; }
+    .box { border-radius: 10px; padding: 10px 15px; margin-top: 10px; font-weight: bold; font-size: 1rem; }
+    .ventola { background-color: #d0ecff; color: #007acc; }
+    .mezzofondo { background-color: #dfffe0; color: #2e8b57; }
+    .fondo { background-color: #f4e1d2; color: #8b4513; }
+    .totale { background-color: #ffe6e6; color: red; font-size: 1.2em; }
+    .hint { font-size: .9rem; color: #555; margin-top: 6px; }
+    @media (max-width: 600px) {
+      body { padding: 10px; font-size: 0.95rem; }
+      h2 { font-size: 1.6rem; }
+      .sezione h3 { font-size: 1rem; }
+      label, input, button { font-size: 1rem; }
+      .box { font-size: 1rem; padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <h2>Calcolo Portata Scaricata - Ponte Ghirlo</h2>
+
+  <div class="sezione">
+    <h3 class="quota">QUOTA LAGO</h3>
+    <label for="quotaLago">Quota Lago (m s.l.m.):</label>
+    <input type="text" id="quotaLago" value="0" inputmode="decimal" placeholder="Es. 746,50 o 746.50">
+    <div class="hint">Suggerimento: puoi usare virgola (,) o punto (.) come separatore decimale.</div>
+  </div>
+
+  <div class="sezione">
+    <h3 class="ventola">VENTOLA</h3>
+    <label for="aperturaSfioratore">Apertura Ventola (cm):</label>
+    <input type="text" id="aperturaSfioratore" value="0" inputmode="decimal" placeholder="0–450">
+  </div>
+
+  <div class="sezione">
+    <h3 class="mezzofondo">MEZZO FONDO</h3>
+    <label for="aperturaMezzoFondo">Apertura Paratoia Mezzo Fondo (cm):</label>
+    <input type="text" id="aperturaMezzoFondo" value="0" inputmode="decimal" placeholder="0–450">
+  </div>
+
+  <div class="sezione">
+    <h3 class="fondo">FONDO</h3>
+    <label for="aperturaFondo">Apertura Paratoia Fondo (cm):</label>
+    <input type="text" id="aperturaFondo" value="0" inputmode="decimal" placeholder="0–450">
+  </div>
+
+  <button id="btn">Calcola Portata</button>
+
+  <div id="risultato" aria-live="polite">
+    <div class="box ventola">Portata Ventola: 0,00 m³/s</div>
+    <div class="box mezzofondo">Portata Mezzo Fondo: 0,00 m³/s</div>
+    <div class="box fondo">Portata Fondo: 0,00 m³/s</div>
+    <div class="box totale">Totale: 0,00 m³/s</div>
+  </div>
+
+  <script>
+    // Normalizza il numero accettando sia virgola che punto
+    function toNumber(value) {
+      if (typeof value !== 'string') return Number(value) || 0;
+      const v = value.trim().replace(/[\s]/g,'').replace(/\./g,'.').replace(/,/g,'.');
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+    function getNum(id) { return toNumber(document.getElementById(id).value); }
+    function format2(n) { return new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n); }
+
+    // === Formule (come nella tua logica) ===
+    function calcolaSfioratore(quota, apertura_cm) {
+      const g = 9.81;
+      const soglia = 746.5;
+      const lunghezza = 12.25;
+      const mu = 0.45;
+      const apertura_m = apertura_cm / 100;
+      const sogliaCorretta = soglia + (4.5 - apertura_m);
+      const h = quota - sogliaCorretta;
+      return h > 0 ? mu * lunghezza * h * Math.sqrt(2 * g * h) : 0;
+    }
+    function calcolaParatoia(quota, apertura_cm, soglia, G, F, L) {
+      const g = 9.81;
+      const apertura = apertura_cm / 100;
+      const diff = quota - soglia;
+      if ((diff * apertura > 0) && (quota > (soglia + apertura))) {
+        return G * L * apertura * Math.sqrt(2 * g * (quota - (soglia + apertura / 2)));
+      } else if (quota <= soglia || apertura === 0) {
+        return 0;
+      } else {
+        return F * L * (quota - soglia) * Math.sqrt(2 * g * (quota - soglia));
+      }
+    }
+    function calcolaPortata() {
+      const quota = getNum("quotaLago");
+      const aperturaSfioratore = getNum("aperturaSfioratore");
+      const aperturaMezzoFondo = getNum("aperturaMezzoFondo");
+      const aperturaFondo = getNum("aperturaFondo");
+
+      const portataVentola = calcolaSfioratore(quota, aperturaSfioratore);
+      const portataMezzoFondo = calcolaParatoia(quota, aperturaMezzoFondo, 739, 0.86, 0.43, 5);
+      const portataFondo = calcolaParatoia(quota, aperturaFondo, 739, 0.76, 0.43, 2);
+      const portataTotale = portataVentola + portataMezzoFondo + portataFondo;
+
+      document.getElementById("risultato").innerHTML = `
+        <div class="box ventola">Portata Ventola: ${format2(portataVentola)} m³/s</div>
+        <div class="box mezzofondo">Portata Mezzo Fondo: ${format2(portataMezzoFondo)} m³/s</div>
+        <div class="box fondo">Portata Fondo: ${format2(portataFondo)} m³/s</div>
+        <div class="box totale">Totale: ${format2(portataTotale)} m³/s</div>
+      `;
+    }
+    document.getElementById("btn").addEventListener("click", calcolaPortata);
+    document.addEventListener("keydown", (e) => { if (e.key === "Enter") calcolaPortata(); });
+
+    // Registra il Service Worker per modalità app/offline
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js');
+      });
+    }
+  </script>
+</body>
+</html>
